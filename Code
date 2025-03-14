@@ -1,0 +1,55 @@
+import chess
+import chess.engine
+import random
+
+# Путь к исполняемому файлу Stockfish
+STOCKFISH_PATH = "/path/to/stockfish"  # Замените на путь к вашему исполнимому файлу Stockfish
+
+# Инициализация шахматной доски
+board = chess.Board()
+
+# Функция для генерации случайного хода для бота
+def random_move(board):
+    legal_moves = list(board.legal_moves)
+    return random.choice(legal_moves)
+
+# Функция для запуска игры с использованием Stockfish
+def play_game():
+    with chess.engine.SimpleEngine.popen_uci(STOCKFISH_PATH) as engine:
+        while not board.is_game_over():
+            print(board)
+            if board.turn == chess.WHITE:  # Ход бота (за белых)
+                print("\nБот делает ход...")
+                result = engine.play(board, chess.engine.Limit(time=2.0))  # Ход Stockfish с лимитом по времени
+                board.push(result.move)
+            else:  # Ход игрока (за черных)
+                move_str = input("\nВведите ваш ход (например, e2e4): ")
+                try:
+                    move = chess.Move.from_uci(move_str)
+                    if move in board.legal_moves:
+                        board.push(move)
+                    else:
+                        print("Некорректный ход!")
+                except ValueError:
+                    print("Ошибка: некорректный формат хода. Попробуйте снова.")
+            
+            print("\n----------------------")
+
+        # Печатаем результат игры
+        print("Игра завершена!")
+        if board.is_checkmate():
+            print("Шах и мат!")
+        elif board.is_stalemate():
+            print("Пат!")
+        elif board.is_insufficient_material():
+            print("Недостаточно материала для мата!")
+        elif board.is_seventyfive_moves():
+            print("75 ходов без взятия или хода пешкой!")
+        elif board.is_fivefold_repetition():
+            print("Пятиричное повторение позиций!")
+        else:
+            print("Ничья (по другим причинам).")
+
+# Запуск игры
+if __name__ == "__main__":
+    play_game()
