@@ -12,27 +12,44 @@ def set_difficulty(engine, skill_level):
     # Устанавливаем уровень сложности от 0 до 20
     engine.setoption({"Skill Level": skill_level})
 
-# Функция для запуска игры с использованием Stockfish
-def play_game(skill_level):
+# Функция для отображения доски в более читаемом виде
+def print_board(board):
+    print(board)
+
+# Функция для игры с использованием Stockfish
+def play_game(skill_level, time_per_move=2.0):
     with chess.engine.SimpleEngine.popen_uci(STOCKFISH_PATH) as engine:
         set_difficulty(engine, skill_level)  # Устанавливаем уровень сложности
 
+        # Инициализация переменной для отмены ходов
+        move_history = []
+
         while not board.is_game_over():
-            print(board)
+            print_board(board)
+
+            # Проверяем чью очередь хода
             if board.turn == chess.WHITE:  # Ход бота (за белых)
                 print("\nБот делает ход...")
-                result = engine.play(board, chess.engine.Limit(time=2.0))  # Ход Stockfish с лимитом по времени
+                result = engine.play(board, chess.engine.Limit(time=time_per_move))  # Ход Stockfish с лимитом по времени
                 board.push(result.move)
+                move_history.append(result.move)  # Добавляем ход в историю
             else:  # Ход игрока (за черных)
-                move_str = input("\nВведите ваш ход (например, e2e4): ")
-                try:
-                    move = chess.Move.from_uci(move_str)
-                    if move in board.legal_moves:
-                        board.push(move)
-                    else:
-                        print("Некорректный ход!")
-                except ValueError:
-                    print("Ошибка: некорректный формат хода. Попробуйте снова.")
+                move_str = input("\nВведите ваш ход (например, e2e4) или 'undo' для отмены последнего хода: ")
+
+                if move_str.lower() == 'undo' and move_history:
+                    print("Отменяю последний ход...")
+                    board.pop()  # Отменяем ход
+                    move_history.pop()  # Убираем последний ход из истории
+                else:
+                    try:
+                        move = chess.Move.from_uci(move_str)
+                        if move in board.legal_moves:
+                            board.push(move)
+                            move_history.append(move)  # Добавляем ход в историю
+                        else:
+                            print("Некорректный ход!")
+                    except ValueError:
+                        print("Ошибка: некорректный формат хода. Попробуйте снова.")
             
             print("\n----------------------")
 
@@ -55,6 +72,16 @@ def play_game(skill_level):
 if __name__ == "__main__":
     skill_level = int(input("Выберите уровень сложности (0 - 20): "))
     if 0 <= skill_level <= 20:
-        play_game(skill_level)
+        color_choice = input("Вы хотите играть за белых или черных? (b/w): ").lower()
+        if color_choice == 'b':
+            board = chess.Board()  # Игрок за черных
+            play_game(skill_level)
+        elif color_choice == 'w':
+            board = chess.Board()
+            board.set_fen(chess.STARTING_FEN)  # Игрок за белых
+            play_game(skill_level)
+        else:
+            print("Неверный выбор цвета!")
     else:
         print("Неверный уровень сложности. Выберите значение от 0 до 20.")
+
